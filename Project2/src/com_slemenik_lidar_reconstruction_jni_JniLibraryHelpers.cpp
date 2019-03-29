@@ -3,14 +3,21 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <time.h>
 
 #include "lasreader.hpp"
 #include "laswriter.hpp"
 
 LASreader* lasreader;
 LASwriter* laswriter;
+double start_time = 0.0;
 
-void init() {
+static double taketime()
+{
+	return (double)(clock()) / CLOCKS_PER_SEC;
+}
+
+const char* init() {
 
 	LASreadOpener lasreadopener;
 	LASwriteOpener laswriteopener;
@@ -18,42 +25,49 @@ void init() {
 	lasreadopener.set_file_name("france.laz");
 	laswriteopener.set_file_name("out.laz");
 
+	start_time = taketime();
+
 	// check input & output
 	if (!lasreadopener.active() || !laswriteopener.active())
 	{
-		fprintf(stderr, "ERROR: no input or output specified\n");
+		return "ERROR: no input or output specified\n";
 	}
 	// open lasreader
 	lasreader = lasreadopener.open();
 	if (lasreader == 0)
 	{
-		fprintf(stderr, "ERROR: could not open lasreader\n");
+		return "ERROR: could not open lasreader\n";
 	}
-
 	// open laswriter
 	laswriter = laswriteopener.open(&lasreader->header);
 	if (laswriter == 0)
 	{
-		fprintf(stderr, "ERROR: could not open laswriter\n");
+		return "ERROR: could not open laswriter\n";
 	}
+	char returnValue[100];
+	sprintf(returnValue, "reading %I64d points from '%s' and writing them modified to '%s'.\n", lasreader->npoints, lasreadopener.get_file_name(), laswriteopener.get_file_name());
 
+	return returnValue;
 }
-		//if (i == 1000) break;
-void after() {
+
+const char* after() {
 	laswriter->update_header(&lasreader->header, TRUE);
 
 	I64 total_bytes = laswriter->close();
 	delete laswriter;
-
-	//fprintf(stderr, "total time: %g sec %I64d bytes for %I64d points\n", taketime() - start_time, total_bytes, lasreader->p_count);
+	const I64 count = lasreader->p_count;
 
 	lasreader->close();
 	delete lasreader;
-	// std::cin.get();
-	// return 0;
+
+	double time = taketime() - start_time;
+	char returnValue[100];
+	//sprintf(returnValue, "total time: %f sec %I64d bytes for %I64d points.\n", time, total_bytes, count);
+	sprintf(returnValue, "end writing");
+	return returnValue;
 }
 
-const char* write_point(const F64 x, const F64 y, const F64 z) {
+int write_point(const F64 x, const F64 y, const F64 z) {
 
 	LASpoint point;
 	point.init(&lasreader->header, lasreader->header.point_data_format, lasreader->header.point_data_record_length, 0);
@@ -67,12 +81,11 @@ const char* write_point(const F64 x, const F64 y, const F64 z) {
 	point.set_Z(point.quantizer->get_Z(z)); // zgodi v ozadju, ce bi dali set (F64)
 
 	// write the modified point
-	laswriter->write_point(&point);
+	BOOL result = laswriter->write_point(&point);
 	// add it to the inventory
 	laswriter->update_inventory(&point);
 
-	return "alles gut";
-
+	return result;
 }
 
 JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList(JNIEnv * env, jobject obj, jobjectArray pointsArray)
@@ -81,8 +94,10 @@ JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelp
 	jclass className = env->GetObjectClass(obj);
 	jmethodID methodId = env->GetMethodID(className, "printDouble", "(D)V");
 	jmethodID methodprintStringId = env->GetMethodID(className, "printString", "(Ljava/lang/String;)V");
+	const char* message;
 
-	init();
+	message = init();
+	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
 	for (int i = 0; i < len; ++i) {
 		jdoubleArray oneDim = (jdoubleArray)env->GetObjectArrayElement(pointsArray, i);
 		jdouble *point = env->GetDoubleArrayElements(oneDim, 0);
@@ -91,9 +106,11 @@ JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelp
 		jdouble z = point[2];
 
 		//write point
-		const char* errMessage = write_point(x, y, z);
-
-		env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(errMessage));
+		int result = write_point(x, y, z);
+		if (result == 0) {
+			message = "Failed to write point %d, %d, %d", x, y, z;
+			env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
+		}
 
 		/*env->CallVoidMethod(obj, methodId, x);
 		env->CallVoidMethod(obj, methodId, y);
@@ -102,21 +119,14 @@ JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelp
 		env->ReleaseDoubleArrayElements(oneDim, point, JNI_ABORT);
 		env->DeleteLocalRef(oneDim);
 	}
-	after();
+	message = after();
+	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
 	return len;
 }
 
 JNIEXPORT void JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPoint(JNIEnv * env, jobject obj, jdouble x, jdouble y, jdouble z)
 {
 
-	//    double y1 = y;
-	//    double x1 = x;
-	//    double z1 = z;
-	//    std::cout << "Hello, World!--" << x << ",  " << y << ", " << z << std::endl;
-	//    std::cout << "Hello, World!--";
-	//    const char* ptrs2 = std::to_string(x).c_str();
-	//    printf("%f, %f, %f", x1, y1, z1);
-	//    printf("testis");
 	jclass className = env->GetObjectClass(obj);
 	jmethodID mid = env->GetMethodID(className, "primt", "(Ljava/lang/String;)V");
 	jmethodID middouble = env->GetMethodID(className, "test3", "(D)V");
