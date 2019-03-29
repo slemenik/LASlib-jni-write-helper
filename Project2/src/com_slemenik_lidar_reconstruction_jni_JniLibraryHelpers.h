@@ -8,12 +8,12 @@
 extern "C" {
 #endif
 	/*
-	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
-	 * Method:    writeJNIPointList
-	 * Signature: ([[D)V
-	 */
+ * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+ * Method:    writeJNIPointList
+ * Signature: ([[DLjava/lang/String;Ljava/lang/String;)I
+ */
 	JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList
-	(JNIEnv * env, jobject obj, jobjectArray pointsArray);
+	(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName);
 
 	/*
 	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers

@@ -17,13 +17,13 @@ static double taketime()
 	return (double)(clock()) / CLOCKS_PER_SEC;
 }
 
-const char* init() {
+const char* init(const char* inputFileName, const char* outputFileName) {
 
 	LASreadOpener lasreadopener;
 	LASwriteOpener laswriteopener;
 
-	lasreadopener.set_file_name("france.laz");
-	laswriteopener.set_file_name("out.laz");
+	lasreadopener.set_file_name(inputFileName);
+	laswriteopener.set_file_name(outputFileName);
 
 	start_time = taketime();
 
@@ -44,10 +44,9 @@ const char* init() {
 	{
 		return "ERROR: could not open laswriter\n";
 	}
-	char returnValue[100];
-	sprintf(returnValue, "reading %I64d points from '%s' and writing them modified to '%s'.\n", lasreader->npoints, lasreadopener.get_file_name(), laswriteopener.get_file_name());
-
-	return returnValue;
+	//char returnValue[100];
+	//sprintf(returnValue, "reading %I64d points from '%s' and writing them modified to '%s'.\n", lasreader->npoints, lasreadopener.get_file_name(), laswriteopener.get_file_name());
+	return "init";
 }
 
 const char* after() {
@@ -60,11 +59,10 @@ const char* after() {
 	lasreader->close();
 	delete lasreader;
 
-	double time = taketime() - start_time;
-	char returnValue[100];
+	//double time = taketime() - start_time;
+	//char returnValue[100];
 	//sprintf(returnValue, "total time: %f sec %I64d bytes for %I64d points.\n", time, total_bytes, count);
-	sprintf(returnValue, "end writing");
-	return returnValue;
+	return "end writing";
 }
 
 int write_point(const F64 x, const F64 y, const F64 z) {
@@ -88,16 +86,24 @@ int write_point(const F64 x, const F64 y, const F64 z) {
 	return result;
 }
 
-JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList(JNIEnv * env, jobject obj, jobjectArray pointsArray)
+JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList
+(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName)
 {
 	int len = env->GetArrayLength(pointsArray);
 	jclass className = env->GetObjectClass(obj);
 	jmethodID methodId = env->GetMethodID(className, "printDouble", "(D)V");
 	jmethodID methodprintStringId = env->GetMethodID(className, "printString", "(Ljava/lang/String;)V");
-	const char* message;
+	
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	const char *nativeStringOutputName = env->GetStringUTFChars(outputFileName, 0);
 
-	message = init();
+	const char* message;
+	message = init(nativeStringInputFileName, nativeStringOutputName);
 	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+	env->ReleaseStringUTFChars(outputFileName, nativeStringOutputName);
+
+	//foreach point
 	for (int i = 0; i < len; ++i) {
 		jdoubleArray oneDim = (jdoubleArray)env->GetObjectArrayElement(pointsArray, i);
 		jdouble *point = env->GetDoubleArrayElements(oneDim, 0);
