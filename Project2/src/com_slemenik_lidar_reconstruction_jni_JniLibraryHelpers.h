@@ -23,6 +23,22 @@ extern "C" {
 	JNIEXPORT void JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPoint
 	(JNIEnv * env, jobject obj, jdouble x, jdouble y, jdouble z);
 
+	/*
+	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	 * Method:    getMinMaxHeight
+	 * Signature: (DDDLjava/lang/String;)[D
+	 */
+	JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIMinMaxHeight
+	(JNIEnv *env, jobject obj, jdouble x , jdouble y, jdouble radius, jstring inputFileName);
+
+	/*
+	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	 * Method:    createTempLaz
+	 * Signature: (DDDDLjava/lang/String;)I
+	 */
+	JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_createTempLaz
+	(JNIEnv *env, jobject obj, jdouble minX, jdouble minY, jdouble maxX, jdouble maxY, jstring tempFileName, jstring inputFileName);
+
 #ifdef __cplusplus
 }
 #endif
