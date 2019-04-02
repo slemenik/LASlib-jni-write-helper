@@ -168,6 +168,8 @@ int write_point(const F64 x, const F64 y, const F64 z) {
 	point.set_x(x);   
 	point.set_y(y);
 	point.set_z(z);
+	point.set_classification(7);
+		//todo - dodaj klacifikacijo, barvo itd tockam
 
 	// write the modified point
 	BOOL result = laswriter->write_point(&point);
@@ -257,6 +259,7 @@ JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 
 	double maxHeight = 0.0;
 	double minHeight = DBL_MAX;
+	double minDistance = DBL_MAX;
 
 	//-keep_circle 630000 4850000 100
 	char* argv[5] = {
@@ -272,8 +275,8 @@ JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	lasreadopener.set_file_name(nativeStringInputFileName);
 	LASreader* lasreader = lasreadopener.open();
 
-	LASpoint closestPoint;
-	closestPoint.init(&lasreader->header, lasreader->header.point_data_format, lasreader->header.point_data_record_length, 0);
+	double closestX = 0;
+	double closestY = 0;
 	int i = 0;
 	while (lasreader->read_point())
 	{
@@ -283,37 +286,35 @@ JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 
 		double distance = distanceCalculate(lasX, lasY, x, y);
 
-		if (lasZ > maxHeight) maxHeight = lasZ;
-		if (lasZ < minHeight) minHeight = lasZ;
+		if (distance <= radius) {
+			if (lasZ > maxHeight) maxHeight = lasZ;
+			if (lasZ < minHeight) minHeight = lasZ;
+		}
 
-		//env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF("ali tocka obstaja"));
-		if (closestPoint.get_x()) {
+		if (distance < minDistance) {
+			closestX = lasX;
+			closestY = lasY;
+			minDistance = distance;
+		}
+			//env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF("ali tocka obstaja"));
 			//env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF("da"));
-			double minDistance = distanceCalculate(closestPoint.get_x(), closestPoint.get_y(), x, y);
-			if (distance < minDistance) {
-				//if current distance is smaller than distance from closestPoint and shp(x,y)
-				//we set the current point coordinates as being the closest
-				closestPoint.set_x(lasX);
-				closestPoint.set_y(lasX);
-				closestPoint.set_z(lasX);
-			}
-		}
-		else {//first iteration, does not exist yet, so we initialize it
-			//env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF("ne"));
-			closestPoint.set_x(lasX);
-			closestPoint.set_y(lasX);
-			closestPoint.set_z(lasX);
-		}
+			//double minDistance = distanceCalculate(closestPoint.get_x(), closestPoint.get_y(), x, y);
+			//if (distance < minDistance) {
+			//	//if current distance is smaller than distance from closestPoint and shp(x,y)
+			//	//we set the current point coordinates as being the closest
+			//	closestPoint.set_x(lasX);
+			//	closestPoint.set_y(lasX);
+			//	closestPoint.set_z(lasX);
+			//}
 		i++;
 	}
+	double arr[4] = { minHeight, maxHeight, closestX, closestY };
 	lasreader->close();
 	delete lasreader;
 
-	double arr[4] = { minHeight, maxHeight, closestPoint.get_x(), closestPoint.get_y() };
-	
 	std::string s = std::to_string(i);
 	char const *pchar = s.c_str();
-	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(pchar));
+	//env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(pchar));
 
 	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
 	jdoubleArray result = env->NewDoubleArray(4);
