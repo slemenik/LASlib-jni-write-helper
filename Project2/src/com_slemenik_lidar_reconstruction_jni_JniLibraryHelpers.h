@@ -39,6 +39,14 @@ extern "C" {
 	JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_createTempLaz
 	(JNIEnv *env, jobject obj, jdouble minX, jdouble minY, jdouble maxX, jdouble maxY, jstring tempFileName, jstring inputFileName);
 
+	/*
+	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	 * Method:    getJNIPointArray
+	 * Signature: (Ljava/lang/String;)[[D
+	 */
+	JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArray
+	(JNIEnv *env, jobject obj, jstring inputFileName);
+
 #ifdef __cplusplus
 }
 #endif

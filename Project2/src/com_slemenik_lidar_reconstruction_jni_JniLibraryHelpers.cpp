@@ -374,3 +374,47 @@ JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelp
 	return i;
 	//return JNIEXPORT jint JNICALL();
 }
+
+JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArray(JNIEnv * env, jobject obj, jstring inputFileName)
+{
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	LASreadOpener lasreadopener;
+
+	lasreadopener.set_file_name(nativeStringInputFileName);
+	LASreader* lasreader = lasreadopener.open();
+		
+	long long numOfPoints = lasreader->npoints;
+	double** pointer2Array = new double*[numOfPoints];
+
+	int i = 0;
+	while (lasreader->read_point())
+	{
+		double lasX = lasreader->point.get_x();
+		double lasY = lasreader->point.get_y();
+		double lasZ = lasreader->point.get_z();
+		
+		pointer2Array[i] = new double[3] { lasX, lasY, lasZ };
+		i++;
+	}
+	lasreader->close();
+	delete lasreader;
+
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+
+	// Get the int array class
+	jclass cls = env->FindClass("[D");
+
+	jdoubleArray iniVal = env->NewDoubleArray(3);
+	// Create the returnable jobjectArray with an initial value
+	jobjectArray outer = env->NewObjectArray(numOfPoints, cls, iniVal);
+
+	for (int i = 0; i < numOfPoints; i++)
+	{
+		jdoubleArray inner = env->NewDoubleArray(3);
+		env->SetDoubleArrayRegion(inner, 0, 3, pointer2Array[i]);
+		// set inner's values
+		env->SetObjectArrayElement(outer, i, inner);
+		env->DeleteLocalRef(inner);
+	}
+	return outer;
+}

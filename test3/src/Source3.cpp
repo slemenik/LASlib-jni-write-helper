@@ -35,26 +35,26 @@ int main(int argc, char *argv[])
 	462384.7146828237 
 	100678.16336077302*/
 
-	char* argv2[6] = {
-		constToChar("dummy"),//argv[0],
-		//constToChar("-i"),
-		//constToChar("C:\\Users\\Matej\\IdeaProjects\\lidar-buildings-mountains-reconstruction\\462_100_grad.laz"),
-		//constToChar("-o"),
-		//constToChar("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\temp\\LAStools\\bin\\out.laz"),
-		constToChar("-keep_xy"),//constToChar("-keep_circle"),
-		doubleToChar(462256.5542241777),
-		doubleToChar(100610.86422597301),
-		doubleToChar(462384.7146828237),
-		doubleToChar(100678.16336077302),
-	};
-	int argc1 = 6;
+	//char* argv2[6] = {
+	//	constToChar("dummy"),//argv[0],
+	//	//constToChar("-i"),
+	//	//constToChar("C:\\Users\\Matej\\IdeaProjects\\lidar-buildings-mountains-reconstruction\\462_100_grad.laz"),
+	//	//constToChar("-o"),
+	//	//constToChar("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\temp\\LAStools\\bin\\out.laz"),
+	//	constToChar("-keep_xy"),//constToChar("-keep_circle"),
+	//	doubleToChar(462256.5542241777),
+	//	doubleToChar(100610.86422597301),
+	//	doubleToChar(462384.7146828237),
+	//	doubleToChar(100678.16336077302),
+	//};
+	//int argc1 = 6;
 
 	
-	if (!lasreadopener.parse(argc1, argv2)) return -1;
+	//if (!lasreadopener.parse(argc1, argv2)) return -1;
 		//if (!laswriteopener.parse(argc1, argv2)) return -1;
 	
-	lasreadopener.set_file_name("C:\\Users\\Matej\\IdeaProjects\\lidar-buildings-mountains-reconstruction\\462_100_grad.laz");
-	laswriteopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\temp\\LAStools\\bin\\out.laz");
+	lasreadopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\laz\\410_137_triglav.laz");
+	laswriteopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\laz\\out.laz");
 
 	// check input
 
@@ -79,10 +79,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "ERROR: could not open laswriter\n");
 	}
 
+	LASpoint point;
+	LASheader header = lasreader->header;
+	point.init(&header, lasreader->header.point_data_format, lasreader->header.point_data_record_length, &header);
+
+
 	while (lasreader->read_point())
 	{
-		laswriter->write_point(&lasreader->point);
-		laswriter->update_inventory(&lasreader->point);
+		point = lasreader->point;
+		point.set_x(0.1);
+		laswriter->write_point(&point);
+		laswriter->update_inventory(&point);
 	}
 
 	laswriter->update_header(&lasreader->header, TRUE);
