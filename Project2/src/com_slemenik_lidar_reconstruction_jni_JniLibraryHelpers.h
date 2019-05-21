@@ -10,10 +10,10 @@ extern "C" {
 	/*
  * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
  * Method:    writeJNIPointList
- * Signature: ([[DLjava/lang/String;Ljava/lang/String;)I
+ * Signature: ([[DLjava/lang/String;Ljava/lang/String;I)I
  */
 	JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList
-	(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName);
+	(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName, jint classification);
 
 	/*
 	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers

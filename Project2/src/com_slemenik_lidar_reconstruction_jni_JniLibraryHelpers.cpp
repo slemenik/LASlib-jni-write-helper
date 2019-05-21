@@ -160,7 +160,7 @@ static double distanceCalculate(double x1, double y1, double x2, double y2)
 //	return new double[4]{ minHeight, maxHeight, closestPoint.get_x(), closestPoint.get_y() };
 //}
 
-int write_point(const F64 x, const F64 y, const F64 z) {
+int write_point(const F64 x, const F64 y, const F64 z, U8 classification) {
 
 	LASpoint point;
 	point.init(&lasreader->header, lasreader->header.point_data_format, lasreader->header.point_data_record_length, 0);
@@ -168,7 +168,7 @@ int write_point(const F64 x, const F64 y, const F64 z) {
 	point.set_x(x);   
 	point.set_y(y);
 	point.set_z(z);
-	point.set_classification(7);
+	point.set_classification(classification);
 		//todo - dodaj klacifikacijo, barvo itd tockam
 
 	// write the modified point
@@ -180,7 +180,7 @@ int write_point(const F64 x, const F64 y, const F64 z) {
 }
 
 JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointList
-(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName)
+(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName, jint classification)
 {
 	int len = env->GetArrayLength(pointsArray);
 	jclass className = env->GetObjectClass(obj);
@@ -205,7 +205,7 @@ JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelp
 		jdouble z = point[2];
 
 		//write point
-		int result = write_point(x, y, z);
+		int result = write_point(x, y, z, classification);
 		if (result == 0) {
 			message = "Failed to write point %d, %d, %d", x, y, z;
 			env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
