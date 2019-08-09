@@ -47,6 +47,14 @@ extern "C" {
 	JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArray
 	(JNIEnv *env, jobject obj, jstring inputFileName);
 
+	/*
+	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	 * Method:    getJNIHeaderInfo
+	 * Signature: (Ljava/lang/String;)[D
+	 */
+	JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIHeaderInfo
+	(JNIEnv *env, jobject obj, jstring inputFileName);
+
 #ifdef __cplusplus
 }
 #endif

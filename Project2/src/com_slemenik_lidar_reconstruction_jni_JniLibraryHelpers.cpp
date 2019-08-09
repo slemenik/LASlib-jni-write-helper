@@ -418,3 +418,39 @@ JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	}
 	return outer;
 }
+
+JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIHeaderInfo(JNIEnv * env, jobject obj, jstring inputFileName)
+{
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	LASreadOpener lasreadopener;
+
+	lasreadopener.set_file_name(nativeStringInputFileName);
+	LASreader* lasreader = lasreadopener.open();
+
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+
+	LASheader header = lasreader->header;
+
+	const int size = 30; //30 is random size
+	jdoubleArray result = env->NewDoubleArray(size);
+	jdouble values[size];
+
+	for(int i = 0; i< size; i++) {
+		values[i] = 0;
+	}
+
+	values[0] = header.min_x;
+	values[1] = header.max_x;
+	values[2] = header.min_y;
+	values[3] = header.max_y;
+	values[4] = header.min_z;
+	values[5] = header.max_z;
+
+	values[6] = header.number_of_point_records;
+
+	env->SetDoubleArrayRegion(result, 0, size, values);
+	
+	//env->ReleaseDoubleArrayElements(env, arr, body, 0);
+	
+	return result;
+}

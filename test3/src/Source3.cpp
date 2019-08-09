@@ -53,8 +53,8 @@ int main(int argc, char *argv[])
 	//if (!lasreadopener.parse(argc1, argv2)) return -1;
 		//if (!laswriteopener.parse(argc1, argv2)) return -1;
 	
-	lasreadopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\laz\\410_137_triglav.laz");
-	laswriteopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\laz\\out.laz");
+	lasreadopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\data\\410_137_triglav.laz");
+	laswriteopener.set_file_name("C:\\Users\\Matej\\Dropbox\\Faks\\magistrska\\data\\out.laz");
 
 	// check input
 
@@ -81,9 +81,19 @@ int main(int argc, char *argv[])
 
 	LASpoint point;
 	LASheader header = lasreader->header;
+
 	point.init(&header, lasreader->header.point_data_format, lasreader->header.point_data_record_length, &header);
-
-
+	int a = 5;
+	/*fprintf(stdout, "\number_attributes %d", header.number_attributes);
+	fprintf(stdout, "\nheader_size %d", header.header_size);
+	fprintf(stdout, "\noffset_to_point_data %d", header.offset_to_point_data);
+	fprintf(stdout, "\nnumber_of_extended_variable_length_records %d", header.number_of_extended_variable_length_records);
+	fprintf(stdout, "\npoint_data_record_length %d", header.point_data_record_length);
+	fprintf(stdout, "\nnumber_of_points_by_return %d", header.number_of_points_by_return);
+	fprintf(stdout, "\nnumber_of_points_by_return %d", header.number_of_point_records);
+	fprintf(stdout, "\nnumber_of_points_by_return %d", header.number_of_point_records);*/
+	//header.number_attributes
+	fprintf(stdout, "testttt");
 	while (lasreader->read_point())
 	{
 		point = lasreader->point;
