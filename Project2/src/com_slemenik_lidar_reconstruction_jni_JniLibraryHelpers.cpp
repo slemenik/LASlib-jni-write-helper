@@ -47,7 +47,7 @@ const char* init(const char* inputFileName, const char* outputFileName, int argc
 	}
 	//char returnValue[100];
 	//sprintf(returnValue, "reading %I64d points from '%s' and writing them modified to '%s'.\n", lasreader->npoints, lasreadopener.get_file_name(), laswriteopener.get_file_name());
-	return "init";
+	return "JNI: start";
 }
 
 const char* after() {
@@ -65,7 +65,7 @@ const char* after() {
 	//double time = taketime() - start_time;
 	//char returnValue[100];
 	//sprintf(returnValue, "total time: %f sec %I64d bytes for %I64d points.\n", time, total_bytes, count);
-	return "end writing";
+	return "JNI: end ";
 }
 
 static char* constToChar(const char* str) {
@@ -453,4 +453,64 @@ JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	//env->ReleaseDoubleArrayElements(env, arr, body, 0);
 	
 	return result;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArrayRange(JNIEnv * env, jobject obj, jstring inputFileName, jdouble minX, jdouble maxX)
+{
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	LASreadOpener lasreadopener;
+
+	const int argc = 4;
+	char* argv[argc] = {
+		constToChar("dummy"),//argv[0],
+		constToChar("-keep_x"),
+		doubleToChar(minX),
+		doubleToChar(maxX),
+	};
+	if (!lasreadopener.parse(argc, argv)) return NULL;
+	
+	lasreadopener.set_file_name(nativeStringInputFileName);
+	LASreader* lasreader = lasreadopener.open();
+
+	long long numOfPoints = lasreader->npoints;
+	//int numOfPoints = toIncluding - fromIncluding + 1;//lasreader->npoints;
+	double** pointer2Array = new double*[numOfPoints];
+
+	int i = 0;
+	//int pointNum = 0;
+	while (i < numOfPoints && lasreader->read_point())
+	{
+		//if (pointNum < fromIncluding) { //we ommit first few points till we reach fromIncluding
+		//	pointNum++;
+		//	continue;
+		//}
+
+		double lasX = lasreader->point.get_x();
+		double lasY = lasreader->point.get_y();
+		double lasZ = lasreader->point.get_z();
+
+		pointer2Array[i] = new double[3]{ lasX, lasY, lasZ };
+		i++;
+	}
+	lasreader->close();
+	delete lasreader;
+
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+
+	// Get the int array class
+	jclass cls = env->FindClass("[D");
+
+	jdoubleArray iniVal = env->NewDoubleArray(3);
+	// Create the returnable jobjectArray with an initial value
+	jobjectArray outer = env->NewObjectArray(i, cls, iniVal);
+
+	for (int x = 0; x < i; x++)
+	{
+		jdoubleArray inner = env->NewDoubleArray(3);
+		env->SetDoubleArrayRegion(inner, 0, 3, pointer2Array[x]);
+		// set inner's values
+		env->SetObjectArrayElement(outer, x, inner);
+		env->DeleteLocalRef(inner);
+	}
+	return outer;
 }
