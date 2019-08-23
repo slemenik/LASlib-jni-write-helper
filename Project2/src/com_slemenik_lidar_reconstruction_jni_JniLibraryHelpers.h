@@ -32,6 +32,14 @@ extern "C" {
 	(JNIEnv *env, jobject obj, jdouble x , jdouble y, jdouble radius, jstring inputFileName);
 
 	/*
+	* Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	* Method : getJNIMinMaxHeightBBox
+	* Signature : (DDDLjava / lang / String; DDDD)[D
+	*/
+	JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIMinMaxHeightBBox
+	(JNIEnv *env, jobject obj, jdouble x, jdouble y, jdouble radius, jstring inputFileName, jdouble bbox1, jdouble bbox2, jdouble bbox3, jdouble bbox4);
+
+	/*
 	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
 	 * Method:    createTempLaz
 	 * Signature: (DDDDLjava/lang/String;)I
@@ -62,6 +70,22 @@ extern "C" {
 	 */
 	JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArrayRange
 	(JNIEnv *env, jobject obj, jstring inputFileName, jdouble minX, jdouble maxX);
+
+	/*
+	* Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	* Method:    writeJNIPointListWithClassification
+	* Signature: ([[DLjava/lang/String;Ljava/lang/String;)I
+	*/
+	JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointListWithClassification
+	(JNIEnv *env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName);
+
+	/*
+	 * Class:     com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers
+	 * Method:    getJNIPointArrayParams
+	 * Signature: (Ljava/lang/String;[Ljava/lang/String;)[[D
+	 */
+	JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArrayParams
+	(JNIEnv *env, jobject obj, jstring inputFileName, jobjectArray params);
 
 #ifdef __cplusplus
 }

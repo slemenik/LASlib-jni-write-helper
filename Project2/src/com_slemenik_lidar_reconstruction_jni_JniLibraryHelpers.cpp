@@ -324,6 +324,74 @@ JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	//return JNIEXPORT jdoubleArray JNICALL();
 }
 
+JNIEXPORT jdoubleArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIMinMaxHeightBBox(JNIEnv * env, jobject obj, jdouble x, jdouble y, jdouble radius, jstring inputFileName, jdouble bbox1, jdouble bbox2, jdouble bbox3, jdouble bbox4)
+{
+	jclass className = env->GetObjectClass(obj);
+	jmethodID methodId = env->GetMethodID(className, "printDouble", "(D)V");
+	jmethodID methodprintStringId = env->GetMethodID(className, "printString", "(Ljava/lang/String;)V");
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+
+	double maxHeight = 0.0;
+	double minHeight = DBL_MAX;
+	double minDistance = DBL_MAX;
+	const int argc = 10;
+
+	//-keep_circle 630000 4850000 100
+	char* argv[argc] = {
+		constToChar("dummy"),//argv[0],
+		constToChar("-keep_xy"),
+		doubleToChar(bbox1),
+		doubleToChar(bbox2),
+		doubleToChar(bbox3),
+		doubleToChar(bbox4),
+		constToChar("-keep_circle"),
+		doubleToChar(x),
+		doubleToChar(y),
+		doubleToChar(radius),
+	};
+	LASreadOpener lasreadopener;
+	if (!lasreadopener.parse(argc, argv)) return NULL;
+
+	lasreadopener.set_file_name(nativeStringInputFileName);
+	LASreader* lasreader = lasreadopener.open();
+
+	double closestX = 0;
+	double closestY = 0;
+	int i = 0;
+	while (lasreader->read_point())
+	{
+		double lasX = lasreader->point.get_x();
+		double lasY = lasreader->point.get_y();
+		double lasZ = lasreader->point.get_z();
+
+		double distance = distanceCalculate(lasX, lasY, x, y);
+
+		if (distance <= radius) {
+			if (lasZ > maxHeight) maxHeight = lasZ;
+			if (lasZ < minHeight) minHeight = lasZ;
+		}
+
+		if (distance < minDistance) {
+			closestX = lasX;
+			closestY = lasY;
+			minDistance = distance;
+		}
+		i++;
+	}
+	double arr[4] = { minHeight, maxHeight, closestX, closestY };
+	lasreader->close();
+	delete lasreader;
+
+	std::string s = std::to_string(i);
+	char const *pchar = s.c_str();
+
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+	jdoubleArray result = env->NewDoubleArray(4);
+
+	env->SetDoubleArrayRegion(result, 0, 4, arr);
+	return result;
+}
+
 JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_createTempLaz
 (JNIEnv * env, jobject obj, jdouble minX, jdouble minY, jdouble maxX, jdouble maxY, jstring tempFileName, jstring inputFileName)
 {
@@ -385,6 +453,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 		
 	long long numOfPoints = lasreader->npoints;
 	double** pointer2Array = new double*[numOfPoints];
+	const int arraySize = 4;
 
 	int i = 0;
 	while (lasreader->read_point())
@@ -392,8 +461,9 @@ JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 		double lasX = lasreader->point.get_x();
 		double lasY = lasreader->point.get_y();
 		double lasZ = lasreader->point.get_z();
+		double classification = lasreader->point.get_classification();
 		
-		pointer2Array[i] = new double[3] { lasX, lasY, lasZ };
+		pointer2Array[i] = new double[arraySize] { lasX, lasY, lasZ, classification };
 		i++;
 	}
 	lasreader->close();
@@ -404,14 +474,14 @@ JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	// Get the int array class
 	jclass cls = env->FindClass("[D");
 
-	jdoubleArray iniVal = env->NewDoubleArray(3);
+	jdoubleArray iniVal = env->NewDoubleArray(arraySize);
 	// Create the returnable jobjectArray with an initial value
 	jobjectArray outer = env->NewObjectArray(numOfPoints, cls, iniVal);
 
 	for (int i = 0; i < numOfPoints; i++)
 	{
-		jdoubleArray inner = env->NewDoubleArray(3);
-		env->SetDoubleArrayRegion(inner, 0, 3, pointer2Array[i]);
+		jdoubleArray inner = env->NewDoubleArray(arraySize);
+		env->SetDoubleArrayRegion(inner, 0, arraySize, pointer2Array[i]);
 		// set inner's values
 		env->SetObjectArrayElement(outer, i, inner);
 		env->DeleteLocalRef(inner);
@@ -508,6 +578,116 @@ JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLib
 	{
 		jdoubleArray inner = env->NewDoubleArray(3);
 		env->SetDoubleArrayRegion(inner, 0, 3, pointer2Array[x]);
+		// set inner's values
+		env->SetObjectArrayElement(outer, x, inner);
+		env->DeleteLocalRef(inner);
+	}
+	return outer;
+}
+
+JNIEXPORT jint JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_writeJNIPointListWithClassification(JNIEnv * env, jobject obj, jobjectArray pointsArray, jstring inputFileName, jstring outputFileName)
+{
+	int len = env->GetArrayLength(pointsArray);
+	jclass className = env->GetObjectClass(obj);
+	jmethodID methodId = env->GetMethodID(className, "printDouble", "(D)V");
+	jmethodID methodprintStringId = env->GetMethodID(className, "printString", "(Ljava/lang/String;)V");
+
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	const char *nativeStringOutputName = env->GetStringUTFChars(outputFileName, 0);
+
+	const char* message;
+	message = init(nativeStringInputFileName, nativeStringOutputName);
+	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+	env->ReleaseStringUTFChars(outputFileName, nativeStringOutputName);
+
+	//foreach point
+	for (int i = 0; i < len; ++i) {
+		jdoubleArray oneDim = (jdoubleArray)env->GetObjectArrayElement(pointsArray, i);
+		jdouble *point = env->GetDoubleArrayElements(oneDim, 0);
+		jdouble x = point[0];
+		jdouble y = point[1];
+		jdouble z = point[2];
+		jdouble classification = point[3];
+
+		//write point
+		int result = write_point(x, y, z, (int) classification);
+		if (result == 0) {
+			message = "Failed to write point %d, %d, %d", x, y, z;
+			env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
+		}
+
+		/*env->CallVoidMethod(obj, methodId, x);
+		env->CallVoidMethod(obj, methodId, y);
+		env->CallVoidMethod(obj, methodId, z);*/
+
+		env->ReleaseDoubleArrayElements(oneDim, point, JNI_ABORT);
+		env->DeleteLocalRef(oneDim);
+	}
+	message = after();
+	env->CallVoidMethod(obj, methodprintStringId, env->NewStringUTF(message));
+	return len;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_com_slemenik_lidar_reconstruction_jni_JniLibraryHelpers_getJNIPointArrayParams(JNIEnv * env, jobject obj, jstring inputFileName, jobjectArray params)
+{
+	const int argc = env->GetArrayLength(params);
+
+	char** argv = new char*[argc];
+	for (int i = 0; i < argc; i++) {
+		jstring string = (jstring)(env->GetObjectArrayElement(params, i));
+		const char *rawString = env->GetStringUTFChars(string, 0);
+		argv[i] = constToChar(rawString);
+		env->ReleaseStringUTFChars(string, rawString);
+	}
+
+	const char *nativeStringInputFileName = env->GetStringUTFChars(inputFileName, 0);
+	LASreadOpener lasreadopener;
+
+	if (!lasreadopener.parse(argc, argv)) return NULL;
+
+	lasreadopener.set_file_name(nativeStringInputFileName);
+	LASreader* lasreader = lasreadopener.open();
+
+	long long numOfPoints = lasreader->npoints;
+	//int numOfPoints = toIncluding - fromIncluding + 1;//lasreader->npoints;
+	double** pointer2Array = new double*[numOfPoints];
+	const int arraySize = 4;
+
+	int i = 0;
+	//int pointNum = 0;
+	while (i < numOfPoints && lasreader->read_point())
+	{
+		//if (pointNum < fromIncluding) { //we ommit first few points till we reach fromIncluding
+		//	pointNum++;
+		//	continue;
+		//}
+
+		double lasX = lasreader->point.get_x();
+		double lasY = lasreader->point.get_y();
+		double lasZ = lasreader->point.get_z();
+		double classification = lasreader->point.get_classification();
+
+		pointer2Array[i] = new double[arraySize] { lasX, lasY, lasZ, classification };
+		i++;
+	}
+	lasreader->close();
+	delete lasreader;
+
+	env->ReleaseStringUTFChars(inputFileName, nativeStringInputFileName);
+	delete argv;
+
+	// Get the int array class
+	jclass cls = env->FindClass("[D");
+
+	jdoubleArray iniVal = env->NewDoubleArray(arraySize);
+	// Create the returnable jobjectArray with an initial value
+	jobjectArray outer = env->NewObjectArray(i, cls, iniVal);
+
+	for (int x = 0; x < i; x++)
+	{
+		jdoubleArray inner = env->NewDoubleArray(arraySize);
+		env->SetDoubleArrayRegion(inner, 0, arraySize, pointer2Array[x]);
 		// set inner's values
 		env->SetObjectArrayElement(outer, x, inner);
 		env->DeleteLocalRef(inner);
